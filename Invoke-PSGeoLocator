@@ -1,0 +1,58 @@
+$filepath = ".\u_ex190803.log"
+
+function Parse_IIS{
+$headers = (Get-Content -Path $filePath -TotalCount 4 | Select -First 1 -Skip 3) -replace '#Fields: ' -split ' '
+Get-Content $filePath | Select-String -Pattern '^#' -NotMatch | ConvertFrom-Csv -Delimiter ' ' -Header $headers
+} # Parse_IIS
+
+
+function Get_unique_IPs{
+$headers = (Get-Content -Path $filePath -TotalCount 4 | Select -First 1 -Skip 3) -replace '#Fields: ' -split ' '
+Get-Content $filePath | Select-String -Pattern '^#' -NotMatch | ConvertFrom-Csv -Delimiter ' ' -Header $headers
+
+$ip = (Get-Content $filePath | Select-String -Pattern '^#' -NotMatch | ConvertFrom-Csv -Delimiter ' ' -Header $headers | Sort-Object c-ip -Unique)."c-ip"
+} # Get_unique_IPs
+
+
+function Geo_data_on_IP_list{
+$ip = (Get-Content $filePath | Select-String -Pattern '^#' -NotMatch | ConvertFrom-Csv -Delimiter ' ' -Header $headers | Sort-Object c-ip -Unique)."c-ip"
+
+foreach($item in $ip){
+    $uriIp = "http://api.ipapi.com/$item" + "?access_key=2a23a5d87348b10c7ac8ab7046deaf40"
+    $request = Invoke-RestMethod -Method Get -Uri $uriIp
+    $out += @("$($item) | $($request.city) | $($request.region_name) | $($request.country_name) | $($request.continent_name)")
+} 
+
+$headers = @("IP", "City", "State/Region", "Country", "Continent")
+$out | ConvertFrom-Csv -Delimiter '|' -Header $headers| Out-GridView
+} # Geo_data_on_IP_list
+
+
+function Geo_full_log_all_IPs{
+$headers = (Get-Content -Path $filePath -TotalCount 4 | Select -Skip 3) -replace '#Fields: ' -split ' '
+$headers += "city", "region", "country", "continent"
+
+$log = Get-Content $filePath | Select-String -Pattern '^#' -NotMatch
+$log | Add-Member -MemberType ScriptProperty -Name 'City' -Value {$null}
+$log | Add-Member -MemberType ScriptProperty -Name 'Region' -Value {$null}
+$log | Add-Member -MemberType ScriptProperty -Name 'Country' -Value {$null}
+$log | Add-Member -MemberType ScriptProperty -Name 'Continent' -Value {$null}
+Remove-Variable address -ErrorAction SilentlyContinue
+
+$records = Get-Content $filePath | Select-String -Pattern '^#' -NotMatch | ConvertFrom-Csv -Delimiter ' ' -Header $headers
+$address = ($records |Sort-Object c-ip -Unique)."c-ip"
+
+foreach($item in $address){
+    $uriIp = "http://api.ipapi.com/$item" + "?access_key=2a23a5d87348b10c7ac8ab7046deaf40"
+    $request = Invoke-RestMethod -Method Get -Uri $uriIp
+    foreach($record in $records){
+        if($record."c-ip" -eq $item){
+            try{$record.city = $request.city} catch{}
+            try{$record.region = $request.region_name} catch{}
+            try{$record.country = $request.country_code} catch{}
+            try{$record.continent = $request.continent_name} catch{}  
+        }
+    }
+}
+} # Geo_full_log_all_IPs
+} # iis_stuff
