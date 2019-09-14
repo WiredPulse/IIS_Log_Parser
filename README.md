@@ -1,4 +1,4 @@
-# Parse-IIS-Logs
+# IIS Log Parser
 * Invoke-IISParser.ps1: <br>
   * Parses IIS log into objects, ultimately making the log easier to parse. 
 
