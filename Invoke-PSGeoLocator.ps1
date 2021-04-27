@@ -3,11 +3,8 @@ $api = "< API key from https://ipapi.com/ >
 $headers = (Get-Content -Path $filePath -TotalCount 4 | Select -Skip 3) -replace '#Fields: ' -split ' '
 $headers += "city", "region", "country", "continent"
 
-$log = Get-Content $filePath | Select-String -Pattern '^#' -NotMatch
-$log | Add-Member -MemberType ScriptProperty -Name 'City' -Value {$null}
-$log | Add-Member -MemberType ScriptProperty -Name 'Region' -Value {$null}
-$log | Add-Member -MemberType ScriptProperty -Name 'Country' -Value {$null}
-$log | Add-Member -MemberType ScriptProperty -Name 'Continent' -Value {$null}
+$log = Get-Content $filePath | Select-String -Pattern '^#' -NotMatch | Select-Object *, City, Region, Country, Continent
+
 Remove-Variable address -ErrorAction SilentlyContinue
 
 $records = Get-Content $filePath | Select-String -Pattern '^#' -NotMatch | ConvertFrom-Csv -Delimiter ' ' -Header $headers
